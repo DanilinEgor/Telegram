@@ -80,6 +80,25 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489182438055:android:deb99e4fb3392b3cfc7182",
+        "android_client_info": {
+          "package_name": "org.telegram.messenger.kuxurum.web"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfurGYEQUhYcLcVsPaBbnf2e5R3J45KfA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

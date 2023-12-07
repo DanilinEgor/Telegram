@@ -201,11 +201,6 @@ public class DustRendererThread extends Thread {
                     }
                     pic.particlesData = null;
                 }
-
-                ByteBuffer buffer = ByteBuffer.allocateDirect(pic.w * pic.h * 4).order(ByteOrder.nativeOrder());
-
-                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId[0]);
-                GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, pic.x0, pic.y0, pic.w, pic.h, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
             }
         }
 
