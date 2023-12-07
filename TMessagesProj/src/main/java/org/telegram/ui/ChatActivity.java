@@ -70,7 +70,6 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.URLSpan;
-import android.util.Log;
 import android.util.Pair;
 import android.util.Property;
 import android.util.SparseArray;
@@ -236,6 +235,7 @@ import org.telegram.ui.Components.CombinedDrawable;
 import org.telegram.ui.Components.CounterView;
 import org.telegram.ui.Components.CrossfadeDrawable;
 import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.DustEffect;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.EditTextCaption;
 import org.telegram.ui.Components.EmbedBottomSheet;
@@ -1075,6 +1075,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
 
     private ValueAnimator searchExpandAnimator;
     private float searchExpandProgress;
+    private DustEffect dustEffect;
 
     public static ChatActivity of(long dialogId) {
         Bundle bundle = new Bundle();
@@ -2702,6 +2703,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     @Override
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
+
+        if (dustEffect != null) {
+            dustEffect.destroy();
+            dustEffect = null;
+        }
         if (chatActivityEnterView != null) {
             chatActivityEnterView.onDestroy();
         }
@@ -7377,6 +7383,14 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             if (dialog != null) {
                 reactionsMentionCount = dialog.unread_reactions_count;
                 updateReactionsMentionButton(false);
+            }
+        }
+
+        // For secret chats with frequest messages deletion we're keeping dust effect alive and "hot" for faster animations
+        if (currentEncryptedChat != null && currentEncryptedChat.ttl < 60) {
+            dustEffect = DustEffect.getInstance(contentView);
+            if (dustEffect != null) {
+                dustEffect.setKeepAlive(true);
             }
         }
 

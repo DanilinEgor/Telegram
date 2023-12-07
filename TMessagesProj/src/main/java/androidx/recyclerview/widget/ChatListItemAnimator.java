@@ -5,6 +5,8 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
 import android.view.animation.Interpolator;
@@ -14,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.ViewCompat;
 
+import org.telegram.messenger.Bitmaps;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageReceiver;
@@ -26,6 +29,7 @@ import org.telegram.ui.Cells.ChatMessageCell;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.ChatGreetingsView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.DustEffect;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.TextMessageEnterTransition;
 import org.telegram.ui.VoiceMessageEnterTransition;
@@ -1377,18 +1381,33 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
             FileLog.d("animate remove impl");
         }
         final View view = holder.itemView;
-        mRemoveAnimations.add(holder);
-        ObjectAnimator animator = ObjectAnimator.ofFloat(view, View.ALPHA, view.getAlpha(), 0f);
 
-        dispatchRemoveStarting(holder);
+        if (view instanceof ChatMessageCell) {
+            ChatMessageCell cell = (ChatMessageCell) view;
+            Bitmap b = Bitmaps.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(b);
+            view.draw(c);
 
-        animator.setDuration(getRemoveDuration());
-        animator.addListener(
-                new AnimatorListenerAdapter() {
+            DustEffect dustEffect = DustEffect.getInstance(view);
+            int x = Math.max(0, cell.getBackgroundDrawableLeft());
+            int y = Math.max(0, cell.getBackgroundDrawableTop());
+            int width = Math.min(b.getWidth() - x, cell.getBackgroundDrawableRight() - cell.getBackgroundDrawableLeft());
+            int height = Math.min(b.getHeight() - y, cell.getBackgroundDrawableBottom() - cell.getBackgroundDrawableTop());
+            Bitmap trimmedBitmap = Bitmap.createBitmap(b, x, y, width, height);
 
-                    @Override
-                    public void onAnimationEnd(Animator animator) {
-                        animator.removeAllListeners();
+            int[] coords = new int[2];
+            view.getLocationInWindow(coords);
+
+            recyclerListView.stopScroll();
+
+            dustEffect.drawBitmap(
+                    trimmedBitmap,
+                    coords[0] + x,
+                    coords[1] + y,
+                    () -> {
+                        mRemoveAnimations.add(holder);
+                        dispatchRemoveStarting(holder);
+
                         view.setAlpha(1);
                         view.setScaleX(1f);
                         view.setScaleY(1f);
@@ -1398,11 +1417,39 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
                             dispatchRemoveFinished(holder);
                             dispatchFinishedWhenDone();
                         }
+                    },
+                    () -> {
+                        view.setAlpha(0f);
                     }
-                });
-        animators.put(holder, animator);
-        animator.start();
-        recyclerListView.stopScroll();
+            );
+        } else {
+            mRemoveAnimations.add(holder);
+            ObjectAnimator animator = ObjectAnimator.ofFloat(view, View.ALPHA, view.getAlpha(), 0f);
+
+            dispatchRemoveStarting(holder);
+
+            animator.setDuration(getRemoveDuration());
+            animator.addListener(
+                    new AnimatorListenerAdapter() {
+
+                        @Override
+                        public void onAnimationEnd(Animator animator) {
+                            animator.removeAllListeners();
+                            view.setAlpha(1);
+                            view.setScaleX(1f);
+                            view.setScaleY(1f);
+                            view.setTranslationX(0);
+                            view.setTranslationY(0);
+                            if (mRemoveAnimations.remove(holder)) {
+                                dispatchRemoveFinished(holder);
+                                dispatchFinishedWhenDone();
+                            }
+                        }
+                    });
+            animators.put(holder, animator);
+            animator.start();
+            recyclerListView.stopScroll();
+        }
     }
 
     public void setShouldAnimateEnterFromBottom(boolean shouldAnimateEnterFromBottom) {
